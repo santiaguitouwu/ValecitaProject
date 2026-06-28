@@ -427,7 +427,7 @@ export default function App() {
                   <div style={{ textAlign: 'center', color: '#C28C99', padding: '24px 10px', fontSize: 14 }}>Cargando... 💕</div>
                 ) : s.places.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#CCBBAA', padding: '24px 10px', fontSize: 14, lineHeight: 1.6 }}>
-                    Aún no hay lugares 🥺<br />¡Agrega el primero!
+                    Aún no hay lugares<br />¡Agrega el primero!
                   </div>
                 ) : s.places.map(p => (
                   <div key={p.id} style={{ background: '#fff', borderRadius: 18, padding: 14, boxShadow: '0 5px 14px rgba(180,60,90,.08)', marginBottom: 12, display: 'flex', gap: 12 }}>
