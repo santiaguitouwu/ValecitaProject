@@ -348,7 +348,7 @@ export default function App() {
                 <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: 36, margin: '4px 0 0', color: '#7A2E3F', fontWeight: 700 }}>
                   ¿Qué hacemos hoy?
                 </h2>
-                <p style={{ fontSize: 13, color: '#C28C99', margin: '2px 0 16px' }}>Gira la ruleta del destino 💫</p>
+                <p style={{ fontSize: 13, color: '#C28C99', margin: '2px 0 16px' }}>Gira la ruleta 💫</p>
 
                 <div style={{ position: 'relative', width: 'min(82vw, 330px)', margin: '0 auto' }}>
                   <div style={{ position: 'absolute', top: -4, left: '50%', transform: 'translateX(-50%)', zIndex: 3, width: 0, height: 0, borderLeft: '14px solid transparent', borderRight: '14px solid transparent', borderTop: '26px solid #E84A6F', filter: 'drop-shadow(0 2px 3px rgba(0,0,0,.28))' }} />
