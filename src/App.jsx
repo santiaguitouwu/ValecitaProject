@@ -518,7 +518,7 @@ export default function App() {
                       <span style={{ color: '#E84A6F' }}>{days.toLocaleString('es-CO')} días</span>,{' '}
                       <span style={{ color: '#E84A6F' }}>{hours} horas</span> y{' '}
                       <span style={{ color: '#E84A6F' }}>{minutes} minutos</span>{' '}
-                      nació lo más hermosa, maravillosa y única de este mundo.
+                      nació la más hermosa, maravillosa y única de este mundo. Gracias doña Consuelo
                     </p>
                     <p style={{ fontFamily: "'Caveat', cursive", fontSize: 24, color: '#E84A6F', fontWeight: 700, margin: '12px 0 0' }}>
                       Gracias por existir 💕
