@@ -325,7 +325,7 @@ export default function App() {
               onClick={enterNow}
               style={{ marginTop: 26, background: '#fff', color: '#E84A6F', border: 'none', borderRadius: 999, padding: '14px 32px', fontWeight: 700, fontSize: 16, boxShadow: '0 8px 20px rgba(0,0,0,.14)', cursor: 'pointer' }}
             >
-              Entrar a lo nuestro 💕
+              Entrar💕
             </button>
           </div>
         </div>
