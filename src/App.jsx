@@ -59,6 +59,13 @@ function buildHearts() {
 const SEGMENTS = buildSegments();
 const HEARTS = buildHearts();
 
+const EMOCIONES = [
+  { id: 'molesta',   emoji: '😤', label: 'Molesta' },
+  { id: 'aburrida',  emoji: '😑', label: 'Aburrida' },
+  { id: 'pereza',    emoji: '😴', label: 'Con pereza' },
+  { id: 'enojada',   emoji: '😠', label: 'Enojada' },
+];
+
 function loadInitial() {
   const saidYes = localStorage.getItem('valen_saidyes') === '1';
   return {
@@ -74,8 +81,11 @@ function loadInitial() {
     fleeCount: 0,
     places: [],
     history: [],
+    emociones: [],
     dbLoading: true,
     form: { name: '', rating: 0, note: '', photo: null },
+    emoForm: { emocion: null, intensidad: 0, razon: '' },
+    emoSaving: false,
   };
 }
 
@@ -101,11 +111,13 @@ export default function App() {
     Promise.all([
       supabase.from('places').select('*').order('created_at', { ascending: false }),
       supabase.from('history').select('*').order('created_at', { ascending: false }),
-    ]).then(([{ data: places }, { data: history }]) => {
+      supabase.from('emociones').select('*').order('created_at', { ascending: false }),
+    ]).then(([{ data: places }, { data: history }, { data: emociones }]) => {
       setS(prev => ({
         ...prev,
         places: places ?? [],
         history: history ?? [],
+        emociones: emociones ?? [],
         dbLoading: false,
       }));
     });
@@ -232,6 +244,39 @@ export default function App() {
   };
 
   const setTab = (t) => setS(p => ({ ...p, tab: t }));
+
+  // ── Emociones helpers ──
+  const setEmocion = (id) => setS(p => ({ ...p, emoForm: { ...p.emoForm, emocion: id } }));
+  const setEmoIntensidad = (n) => setS(p => ({ ...p, emoForm: { ...p.emoForm, intensidad: n } }));
+  const setEmoRazon = (e) => { const v = e.target.value; setS(p => ({ ...p, emoForm: { ...p.emoForm, razon: v } })); };
+
+  const saveEmocion = async () => {
+    const { emocion, intensidad, razon } = s.emoForm;
+    if (!emocion || intensidad === 0 || !razon.trim()) return;
+    setS(p => ({ ...p, emoSaving: true }));
+    const found = EMOCIONES.find(e => e.id === emocion);
+    const { data, error } = await supabase.from('emociones').insert({
+      emocion: found.label,
+      emoji: found.emoji,
+      intensidad,
+      razon: razon.trim(),
+    }).select().single();
+    if (!error && data) {
+      setS(prev => ({
+        ...prev,
+        emociones: [data, ...prev.emociones],
+        emoForm: { emocion: null, intensidad: 0, razon: '' },
+        emoSaving: false,
+      }));
+    } else {
+      setS(p => ({ ...p, emoSaving: false }));
+    }
+  };
+
+  const deleteEmocion = async (id) => {
+    await supabase.from('emociones').delete().eq('id', id);
+    setS(prev => ({ ...prev, emociones: prev.emociones.filter(x => x.id !== id) }));
+  };
 
   // ── Derived ──
   const yesScale = Math.min(1 + s.fleeCount * 0.14, 2.4);
@@ -528,18 +573,157 @@ export default function App() {
               );
             })()}
 
+            {/* ── TAB: EMOCIONES ── */}
+            {s.tab === 'emociones' && (
+              <div>
+                <h2 style={{ fontFamily: "'Caveat', cursive", fontSize: 36, margin: '4px 0 0', textAlign: 'center', color: '#7A2E3F', fontWeight: 700 }}>
+                  Cuéntame cómo te sientes 💭
+                </h2>
+                <p style={{ fontSize: 13, color: '#C28C99', textAlign: 'center', margin: '2px 0 16px' }}>¿Qué está pasando por esa cabecita?</p>
+
+                {/* Love note */}
+                <div style={{ background: 'linear-gradient(135deg,#FF7AA0,#E84A6F)', borderRadius: 20, padding: '20px 22px', marginBottom: 18, textAlign: 'center', boxShadow: '0 8px 24px rgba(232,74,111,.3)' }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>💕</div>
+                  <p style={{ fontFamily: "'Caveat', cursive", fontSize: 22, color: '#fff', fontWeight: 700, margin: 0, lineHeight: 1.4 }}>
+                    Siempre recuerda que te quiero mucho, y que haría todo lo necesario por ti
+                  </p>
+                </div>
+
+                {/* Emotion picker card */}
+                <div style={{ background: '#fff', borderRadius: 20, padding: 16, boxShadow: '0 6px 18px rgba(180,60,90,.1)', marginBottom: 18 }}>
+                  {/* Emotion buttons */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                    {EMOCIONES.map(({ id, emoji, label }) => {
+                      const active = s.emoForm.emocion === id;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => setEmocion(id)}
+                          style={{
+                            background: active ? 'linear-gradient(135deg,#FF7AA0,#E84A6F)' : '#FCEBF0',
+                            color: active ? '#fff' : '#7A2E3F',
+                            border: active ? 'none' : '2px solid #F2C9D4',
+                            borderRadius: 16,
+                            padding: '14px 10px',
+                            fontWeight: 700,
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 6,
+                            transition: 'all .2s ease',
+                            boxShadow: active ? '0 6px 16px rgba(232,74,111,.35)' : 'none',
+                          }}
+                        >
+                          <span style={{ fontSize: 34 }}>{emoji}</span>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Intensity */}
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#C28C99', marginBottom: 8, textAlign: 'center' }}>
+                      ¿Del 1 al 5, cuánto? {s.emoForm.intensidad > 0 ? `— ${s.emoForm.intensidad}` : ''}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                      {[1,2,3,4,5].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => setEmoIntensidad(n)}
+                          style={{
+                            width: 46,
+                            height: 46,
+                            borderRadius: 12,
+                            border: 'none',
+                            fontWeight: 800,
+                            fontSize: 17,
+                            cursor: 'pointer',
+                            background: n <= s.emoForm.intensidad ? 'linear-gradient(135deg,#FF7AA0,#E84A6F)' : '#FCEBF0',
+                            color: n <= s.emoForm.intensidad ? '#fff' : '#C28C99',
+                            transition: 'all .18s ease',
+                          }}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Reason */}
+                  <textarea
+                    value={s.emoForm.razon}
+                    onChange={setEmoRazon}
+                    placeholder="¿Por qué te sientes así? Cuéntame..."
+                    style={{ width: '100%', border: '1.5px solid #F2D6DE', borderRadius: 12, padding: '12px 14px', fontFamily: "'Quicksand', sans-serif", fontSize: 14, color: '#7A2E3F', outline: 'none', resize: 'none', minHeight: 72, marginBottom: 12, boxSizing: 'border-box' }}
+                  />
+
+                  <button
+                    onClick={saveEmocion}
+                    disabled={s.emoSaving || !s.emoForm.emocion || s.emoForm.intensidad === 0 || !s.emoForm.razon.trim()}
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(135deg,#FF7AA0,#E84A6F)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 12,
+                      padding: '13px 22px',
+                      fontWeight: 700,
+                      fontSize: 15,
+                      cursor: 'pointer',
+                      opacity: (s.emoSaving || !s.emoForm.emocion || s.emoForm.intensidad === 0 || !s.emoForm.razon.trim()) ? 0.5 : 1,
+                    }}
+                  >
+                    {s.emoSaving ? 'Guardando... 💕' : 'Guardar emoción'}
+                  </button>
+                </div>
+
+                {/* History */}
+                {s.dbLoading ? (
+                  <div style={{ textAlign: 'center', color: '#C28C99', padding: '24px 10px', fontSize: 14 }}>Cargando... 💕</div>
+                ) : s.emociones.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#CCBBAA', padding: '24px 10px', fontSize: 14, lineHeight: 1.6 }}>
+                    Aún no hay emociones guardadas<br />¡Cuéntame cómo me tienes!
+                  </div>
+                ) : s.emociones.map(e => (
+                  <div key={e.id} style={{ background: '#fff', borderRadius: 18, padding: '14px 16px', boxShadow: '0 5px 14px rgba(180,60,90,.08)', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <span style={{ fontSize: 28 }}>{e.emoji}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: '#7A2E3F' }}>{e.emocion}</div>
+                        <div style={{ display: 'flex', gap: 3, marginTop: 2 }}>
+                          {[1,2,3,4,5].map(n => (
+                            <span key={n} style={{ width: 14, height: 14, borderRadius: 4, background: n <= e.intensidad ? '#E84A6F' : '#F2C9D4', display: 'inline-block' }} />
+                          ))}
+                          <span style={{ fontSize: 11, color: '#C28C99', marginLeft: 4, lineHeight: '14px' }}>{e.intensidad}/5</span>
+                        </div>
+                      </div>
+                      <button onClick={() => deleteEmocion(e.id)} style={{ background: 'none', border: 'none', color: '#E0A9B6', fontSize: 15, cursor: 'pointer', padding: 0 }}>✕</button>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 13, color: '#9a6b76', lineHeight: 1.45 }}>{e.razon}</p>
+                    <div style={{ fontSize: 11, color: '#D7AAB4', marginTop: 6 }}>
+                      {new Date(e.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
           </main>
 
           {/* ── BOTTOM NAV ── */}
           <nav style={{ position: 'fixed', left: 0, right: 0, bottom: 0, maxWidth: 460, margin: '0 auto', display: 'flex', background: '#fff', borderTop: '1px solid #F4D6DE', padding: '9px 0 16px', zIndex: 20, boxShadow: '0 -4px 18px rgba(180,60,90,.07)' }}>
             {[
-              { id: 'ruleta', label: 'Ruleta', emoji: '🎡' },
-              { id: 'lugares', label: 'Lugares', emoji: '📍' },
-              { id: 'historial', label: 'Historial', emoji: '📜' },
-              { id: 'valen', label: 'Para ti', emoji: '💝' },
+              { id: 'ruleta',    label: 'Ruleta',     emoji: '🎡' },
+              { id: 'lugares',   label: 'Lugares',    emoji: '📍' },
+              { id: 'historial', label: 'Historial',  emoji: '📜' },
+              { id: 'emociones', label: 'Emociones',  emoji: '😤' },
+              { id: 'valen',     label: 'Para ti',    emoji: '💝' },
             ].map(({ id, label, emoji }) => (
-              <button key={id} onClick={() => setTab(id)} style={{ flex: 1, background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer', color: s.tab === id ? '#E84A6F' : '#D7AAB4', fontWeight: 700, fontSize: 11 }}>
-                <span style={{ fontSize: 22 }}>{emoji}</span>
+              <button key={id} onClick={() => setTab(id)} style={{ flex: 1, background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer', color: s.tab === id ? '#E84A6F' : '#D7AAB4', fontWeight: 700, fontSize: 10 }}>
+                <span style={{ fontSize: 20 }}>{emoji}</span>
                 {label}
               </button>
             ))}
